@@ -3,7 +3,7 @@ import PassKit
 
 extension PKPaymentAuthorizationViewController {
   public static var merchantIdentifier: String {
-    return "merchant.com.kickstarter"
+    return "merchant.com.contentsquare"
   }
 
   public static func applePayCapable() -> Bool {
