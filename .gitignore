@@ -77,4 +77,4 @@ Frameworks/HockeySDK
 .fastlane/README.md
 
 # Secrets
-bin/StringsScript/Sources/StringsScriptCore/Secrets.swift
+# bin/StringsScript/Sources/StringsScriptCore/Secrets.swift
