@@ -16,6 +16,7 @@ import ReactiveSwift
 import SafariServices
 import UIKit
 import UserNotifications
+import ContentSquare
 
 @UIApplicationMain
 internal final class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -32,6 +33,10 @@ internal final class AppDelegate: UIResponder, UIApplicationDelegate {
   ) -> Bool {
     UIView.doBadSwizzleStuff()
     UIViewController.doBadSwizzleStuff()
+    
+    #if DEBUG
+      ContentSquare.isDebug = true
+    #endif
 
     UIImageView.appearance(whenContainedInInstancesOf: [UITabBar.self])
       .accessibilityIgnoresInvertColors = true

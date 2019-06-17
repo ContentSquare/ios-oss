@@ -6,6 +6,7 @@ import ReactiveSwift
 import SafariServices
 import Stripe
 import UIKit
+import ContentSquare
 
 internal final class CheckoutViewController: DeprecatedWebViewController {
   fileprivate weak var loginToutViewController: UIViewController?
@@ -37,6 +38,10 @@ internal final class CheckoutViewController: DeprecatedWebViewController {
         target: self,
         action: #selector(self.cancelButtonTapped)
       )
+    
+    // We consider that the user made a transaction when this screen appears, because we don't have
+    // any other place to do it - we can't go further in the process with the mocks
+    ContentSquare.send(transaction: CustomerTransaction(id:"FakeTransaction", value: 1.0, currency: .eur))
 
     self.viewModel.inputs.viewDidLoad()
   }
