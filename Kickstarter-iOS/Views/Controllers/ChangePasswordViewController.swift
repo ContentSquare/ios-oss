@@ -192,7 +192,7 @@ final class ChangePasswordViewController: UIViewController, MessageBannerViewCon
       }
   }
 
-  // MARK: Private Functions
+  // MARK: - Functions
 
   private func logoutAndDismiss() {
     AppEnvironment.logout()
@@ -201,17 +201,6 @@ final class ChangePasswordViewController: UIViewController, MessageBannerViewCon
     NotificationCenter.default.post(.init(name: .ksr_sessionEnded))
 
     self.dismiss(animated: true, completion: nil)
-  }
-
-  private func handleKeyboardVisibilityDidChange(_ change: Keyboard.Change) {
-    UIView.animate(
-      withDuration: change.duration,
-      delay: 0.0,
-      options: change.options,
-      animations: { [weak self] in
-        self?.scrollView.contentInset.bottom = change.frame.height
-      }, completion: nil
-    )
   }
 
   private func onePasswordFindPassword(forURLString string: String) {
@@ -230,7 +219,7 @@ final class ChangePasswordViewController: UIViewController, MessageBannerViewCon
       .forEach { $0?.resignFirstResponder() }
   }
 
-  // MARK: Actions
+  // MARK: - Actions
 
   @IBAction func currentPasswordTextDidChange(_ sender: UITextField) {
     guard let text = sender.text else {

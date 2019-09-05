@@ -36,7 +36,7 @@ internal final class ProjectNavigatorViewController: UIPageViewController {
       refTag: refTag,
       navigatorDelegate: navigatorDelegate
     )
-    vc.setViewControllers(
+    vc.ksr_setViewControllers(
       [.init()],
       direction: .forward,
       animated: true,
@@ -158,9 +158,11 @@ internal final class ProjectNavigatorViewController: UIPageViewController {
     }
 
     projectController.delegate = self
-    self.setViewControllers([navController], direction: .forward, animated: false, completion: nil)
+    self.ksr_setViewControllers([navController], direction: .forward, animated: false, completion: nil)
   }
 }
+
+// MARK: - ProjectPamphletViewControllerDelegate
 
 extension ProjectNavigatorViewController: ProjectPamphletViewControllerDelegate {
   internal func projectPamphlet(
@@ -178,11 +180,15 @@ extension ProjectNavigatorViewController: ProjectPamphletViewControllerDelegate 
   }
 }
 
+// MARK: - UIGestureRecognizerDelegate
+
 extension ProjectNavigatorViewController: UIGestureRecognizerDelegate {
   func gestureRecognizer(_: UIGestureRecognizer, shouldReceive _: UITouch) -> Bool {
     return true
   }
 }
+
+// MARK: - UIPageViewControllerDelegate
 
 extension ProjectNavigatorViewController: UIPageViewControllerDelegate {
   internal func pageViewController(

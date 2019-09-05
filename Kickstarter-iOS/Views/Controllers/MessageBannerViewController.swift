@@ -98,6 +98,8 @@ final class MessageBannerViewController: UIViewController, NibLoading {
     let hiddenConstant = self.view.frame.height + (self.view.superview?.safeAreaInsets.bottom ?? 0)
 
     if !isHidden {
+      self.view.superview?.bringSubviewToFront(self.view)
+
       self.view.isHidden = isHidden
 
       self.bottomConstraint?.constant = hiddenConstant
@@ -114,7 +116,7 @@ final class MessageBannerViewController: UIViewController, NibLoading {
         guard let self = self else { return }
 
         if isHidden {
-          // Tells Voice Over to resign focus of the message banner.
+          // Tells VoiceOver to resign focus of the message banner.
           // This causes the reader to focus on the previously selected element.
           if AppEnvironment.current.isVoiceOverRunning() {
             UIAccessibility.post(notification: UIAccessibility.Notification.layoutChanged, argument: nil)
@@ -130,7 +132,7 @@ final class MessageBannerViewController: UIViewController, NibLoading {
         self?.viewModel.inputs.bannerViewAnimationFinished(isHidden: isHidden)
 
         if !isHidden {
-          // Tells Voice Over to focus on the message banner.
+          // Tells VoiceOver to focus on the message banner.
           // This causes the reader to read the message and allows the user to dismiss the banner.
           if AppEnvironment.current.isVoiceOverRunning() {
             UIAccessibility.post(
