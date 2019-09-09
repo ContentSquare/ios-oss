@@ -126,7 +126,9 @@ strings:
 
 secrets:
 	-@rm -rf Frameworks/native-secrets
-	-@git clone https://github.com/kickstarter/native-secrets Frameworks/native-secrets 2>/dev/null || echo '(Skipping secrets.)'
+	# The following line was unnecessary since we don't have access to kickstarter's secrets repo.
+	# Commented since it would cause bugs when running some scripts while not being authenticated to github via https.
+	# -@git clone https://github.com/kickstarter/native-secrets Frameworks/native-secrets 2>/dev/null || echo '(Skipping secrets.)'
 	if [ ! -d Frameworks/native-secrets ]; \
 	then \
 		mkdir -p Frameworks/native-secrets/ios \
