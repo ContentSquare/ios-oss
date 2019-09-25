@@ -3,6 +3,12 @@ import Library
 import Prelude
 import UIKit
 
+private enum Layout {
+  enum CTAContainerView {
+    static let minHeight: CGFloat = 130
+  }
+}
+
 public protocol ProjectPamphletViewControllerDelegate: AnyObject {
   func projectPamphlet(
     _ controller: ProjectPamphletViewController,
@@ -19,6 +25,11 @@ public final class ProjectPamphletViewController: UIViewController {
 
   @IBOutlet private var navBarTopConstraint: NSLayoutConstraint!
 
+  private let pledgeCTAContainerViewMargins = Styles.grid(3)
+  private let pledgeCTAContainerView: PledgeCTAContainerView = {
+    PledgeCTAContainerView(frame: .zero) |> \.translatesAutoresizingMaskIntoConstraints .~ false
+  }()
+
   public static func configuredWith(
     projectOrParam: Either<Project, Param>,
     refTag: RefTag?
@@ -28,12 +39,12 @@ public final class ProjectPamphletViewController: UIViewController {
     return vc
   }
 
-  public override var prefersStatusBarHidden: Bool {
-    return UIApplication.shared.statusBarOrientation.isLandscape
-  }
-
   public override func viewDidLoad() {
     super.viewDidLoad()
+
+    if userCanSeeNativeCheckout() {
+      self.configurePledgeCTAContainerView()
+    }
 
     self.navBarController = self.children
       .compactMap { $0 as? ProjectNavBarViewController }.first
@@ -42,6 +53,8 @@ public final class ProjectPamphletViewController: UIViewController {
     self.contentController = self.children
       .compactMap { $0 as? ProjectPamphletContentViewController }.first
     self.contentController.delegate = self
+
+    self.pledgeCTAContainerView.delegate = self
 
     self.viewModel.inputs.initial(topConstraint: self.initialTopConstraint)
 
@@ -59,6 +72,10 @@ public final class ProjectPamphletViewController: UIViewController {
       constraints: [navBarTopConstraint],
       constant: self.initialTopConstraint
     )
+
+    if userCanSeeNativeCheckout() {
+      self.updateContentInsets()
+    }
   }
 
   public override func viewDidAppear(_ animated: Bool) {
@@ -70,8 +87,53 @@ public final class ProjectPamphletViewController: UIViewController {
     return self.parent?.view.safeAreaInsets.top ?? 0.0
   }
 
+  private func configurePledgeCTAContainerView() {
+    // Configure subviews
+    _ = (self.pledgeCTAContainerView, self.view)
+      |> ksr_addSubviewToParent()
+
+    self.pledgeCTAContainerView.pledgeRetryButton.addTarget(
+      self, action: #selector(ProjectPamphletViewController.pledgeRetryButtonTapped), for: .touchUpInside
+    )
+
+    // Configure constraints
+    let pledgeCTAContainerViewConstraints = [
+      self.pledgeCTAContainerView.leftAnchor.constraint(equalTo: self.view.leftAnchor),
+      self.pledgeCTAContainerView.rightAnchor.constraint(equalTo: self.view.rightAnchor),
+      self.pledgeCTAContainerView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+    ]
+
+    NSLayoutConstraint.activate(pledgeCTAContainerViewConstraints)
+  }
+
+  public override func bindStyles() {
+    super.bindStyles()
+
+    if userCanSeeNativeCheckout() {
+      _ = self.pledgeCTAContainerView
+        |> \.layoutMargins .~ .init(all: self.pledgeCTAContainerViewMargins)
+
+      _ = self.pledgeCTAContainerView.layer
+        |> checkoutLayerCardRoundedStyle
+        |> \.backgroundColor .~ UIColor.white.cgColor
+        |> \.shadowColor .~ UIColor.black.cgColor
+        |> \.shadowOpacity .~ 0.12
+        |> \.shadowOffset .~ CGSize(width: 0, height: -1.0)
+        |> \.shadowRadius .~ 1.0
+        |> \.maskedCorners .~ [CACornerMask.layerMaxXMinYCorner, CACornerMask.layerMinXMinYCorner]
+    }
+  }
+
   public override func bindViewModel() {
     super.bindViewModel()
+
+    self.viewModel.outputs.goToRewards
+      .observeForControllerAction()
+      .observeValues { [weak self] params in
+        let (project, refTag) = params
+
+        self?.goToRewards(project: project, refTag: refTag)
+      }
 
     self.viewModel.outputs.configureChildViewControllersWithProject
       .observeForUI()
@@ -95,6 +157,12 @@ public final class ProjectPamphletViewController: UIViewController {
       .observeValues { [weak self] value in
         self?.navBarTopConstraint.constant = value
       }
+
+    self.viewModel.outputs.configurePledgeCTAView
+      .observeForUI()
+      .observeValues { [weak self] value in
+        self?.pledgeCTAContainerView.configureWith(value: value)
+      }
   }
 
   public override func willTransition(
@@ -104,10 +172,39 @@ public final class ProjectPamphletViewController: UIViewController {
     self.viewModel.inputs.willTransition(toNewCollection: newCollection)
   }
 
+  // MARK: - Private Helpers
+
   private func setInitial(constraints: [NSLayoutConstraint?], constant: CGFloat) {
     constraints.forEach {
       $0?.constant = constant
     }
+  }
+
+  private func goToRewards(project: Project, refTag: RefTag?) {
+    let vc = rewardsCollectionViewController(project: project, refTag: refTag)
+
+    self.present(vc, animated: true)
+  }
+
+  private func updateContentInsets() {
+    let buttonSize = self.pledgeCTAContainerView.pledgeCTAButton.systemLayoutSizeFitting(
+      UIView.layoutFittingCompressedSize
+    )
+    let bottomInset = buttonSize.height + 2 * self.pledgeCTAContainerViewMargins
+
+    self.contentController.additionalSafeAreaInsets = UIEdgeInsets(bottom: bottomInset)
+  }
+
+  // MARK: - Selectors
+
+  @objc func pledgeRetryButtonTapped() {
+    self.viewModel.inputs.pledgeRetryButtonTapped()
+  }
+}
+
+extension ProjectPamphletViewController: PledgeCTAContainerViewDelegate {
+  func pledgeCTAButtonTapped() {
+    self.viewModel.inputs.backThisProjectTapped()
   }
 }
 
@@ -148,4 +245,23 @@ extension ProjectPamphletViewController: ProjectNavBarViewControllerDelegate {
   public func projectNavBarControllerDidTapTitle(_: ProjectNavBarViewController) {
     self.contentController.tableView.scrollToTop()
   }
+}
+
+private func rewardsCollectionViewController(
+  project: Project,
+  refTag: RefTag?
+) -> UINavigationController {
+  let rewardsCollectionViewController = RewardsCollectionViewController
+    .instantiate(with: project, refTag: refTag)
+
+  let navigationController = RewardPledgeNavigationController(
+    rootViewController: rewardsCollectionViewController
+  )
+
+  if AppEnvironment.current.device.userInterfaceIdiom == .pad {
+    _ = navigationController
+      |> \.modalPresentationStyle .~ .pageSheet
+  }
+
+  return navigationController
 }

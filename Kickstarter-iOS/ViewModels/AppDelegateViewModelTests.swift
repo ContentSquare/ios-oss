@@ -443,7 +443,7 @@ final class AppDelegateViewModelTests: TestCase {
     withEnvironment(apiService: MockService(fetchUserSelfError: error), currentUser: .template) {
       self.forceLogout.assertValueCount(0)
 
-      vm.inputs.applicationDidFinishLaunching(
+      self.vm.inputs.applicationDidFinishLaunching(
         application: UIApplication.shared,
         launchOptions: [:]
       )
@@ -452,29 +452,6 @@ final class AppDelegateViewModelTests: TestCase {
       updateCurrentUserInEnvironment.assertDidNotEmitValue()
       self.forceLogout.assertValueCount(1)
     }
-  }
-
-  func testFacebookAppDelegate() {
-    XCTAssertFalse(self.facebookAppDelegate.didFinishLaunching)
-    XCTAssertFalse(self.facebookAppDelegate.openedUrl)
-
-    self.vm.inputs.applicationDidFinishLaunching(
-      application: UIApplication.shared,
-      launchOptions: [:]
-    )
-
-    XCTAssertTrue(self.facebookAppDelegate.didFinishLaunching)
-    XCTAssertFalse(self.facebookAppDelegate.openedUrl)
-
-    let result = self.vm.inputs.applicationOpenUrl(
-      application: UIApplication.shared,
-      url: URL(string: "http://www.fb.com")!,
-      sourceApplication: nil,
-      annotation: 1
-    )
-    XCTAssertFalse(result)
-
-    XCTAssertTrue(self.facebookAppDelegate.openedUrl)
   }
 
   func testOpenAppBanner() {
@@ -488,10 +465,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "http://www.google.com/?app_banner=1&hello=world")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     XCTAssertEqual(
       ["App Open", "Opened App", "Smart App Banner Opened", "Opened App Banner"],
@@ -522,6 +498,18 @@ final class AppDelegateViewModelTests: TestCase {
       self.vm.inputs.applicationWillEnterForeground()
       self.updateConfigInEnvironment.assertValues([config1, config2])
     }
+
+    let config3 = Config.template |> Config.lens.countryCode .~ "CZ"
+    withEnvironment(apiService: MockService(fetchConfigResponse: config3)) {
+      self.vm.inputs.userSessionEnded()
+      self.updateConfigInEnvironment.assertValues([config1, config2, config3])
+    }
+
+    let config4 = Config.template |> Config.lens.countryCode .~ "CA"
+    withEnvironment(apiService: MockService(fetchConfigResponse: config4)) {
+      self.vm.inputs.userSessionStarted()
+      self.updateConfigInEnvironment.assertValues([config1, config2, config3, config4])
+    }
   }
 
   func testPresentViewController() {
@@ -540,10 +528,9 @@ final class AppDelegateViewModelTests: TestCase {
       var result = self.vm.inputs.applicationOpenUrl(
         application: UIApplication.shared,
         url: URL(string: projectUrl)!,
-        sourceApplication: nil,
-        annotation: 1
+        options: [:]
       )
-      XCTAssertFalse(result)
+      XCTAssertTrue(result)
 
       self.presentViewController.assertValues([1])
 
@@ -551,10 +538,9 @@ final class AppDelegateViewModelTests: TestCase {
       result = self.vm.inputs.applicationOpenUrl(
         application: UIApplication.shared,
         url: URL(string: commentsUrl)!,
-        sourceApplication: nil,
-        annotation: 1
+        options: [:]
       )
-      XCTAssertFalse(result)
+      XCTAssertTrue(result)
 
       self.presentViewController.assertValues([1, 2])
 
@@ -562,10 +548,9 @@ final class AppDelegateViewModelTests: TestCase {
       result = self.vm.inputs.applicationOpenUrl(
         application: UIApplication.shared,
         url: URL(string: updatesUrl)!,
-        sourceApplication: nil,
-        annotation: 1
+        options: [:]
       )
-      XCTAssertFalse(result)
+      XCTAssertTrue(result)
 
       self.presentViewController.assertValues([1, 2, 2])
 
@@ -573,10 +558,9 @@ final class AppDelegateViewModelTests: TestCase {
       result = self.vm.inputs.applicationOpenUrl(
         application: UIApplication.shared,
         url: URL(string: updateUrl)!,
-        sourceApplication: nil,
-        annotation: 1
+        options: [:]
       )
-      XCTAssertFalse(result)
+      XCTAssertTrue(result)
 
       self.presentViewController.assertValues([1, 2, 2, 2])
 
@@ -584,12 +568,95 @@ final class AppDelegateViewModelTests: TestCase {
       result = self.vm.inputs.applicationOpenUrl(
         application: UIApplication.shared,
         url: URL(string: updateCommentsUrl)!,
-        sourceApplication: nil,
-        annotation: 1
+        options: [:]
       )
-      XCTAssertFalse(result)
+      XCTAssertTrue(result)
 
       self.presentViewController.assertValues([1, 2, 2, 2, 3])
+    }
+  }
+
+  func testPresentViewController_ProjectPreviewLink_PrelaunchActivated_True() {
+    let project = Project.template
+      |> Project.lens.prelaunchActivated .~ true
+
+    let apiService = MockService(fetchProjectResponse: project)
+    withEnvironment(apiService: apiService) {
+      let rootUrl = "https://www.kickstarter.com/"
+
+      self.vm.inputs.applicationDidFinishLaunching(
+        application: UIApplication.shared,
+        launchOptions: [:]
+      )
+
+      self.presentViewController.assertValues([])
+
+      let projectUrl = rootUrl + "projects/tequila/help-me-transform-this-pile-of-wood"
+      let result = self.vm.inputs.applicationOpenUrl(
+        application: UIApplication.shared,
+        url: URL(string: projectUrl)!,
+        options: [:]
+      )
+      XCTAssertTrue(result)
+
+      self.presentViewController.assertValues([])
+      XCTAssertEqual(self.goToMobileSafari.values.map { $0.absoluteString }, [projectUrl])
+    }
+  }
+
+  func testPresentViewController_ProjectPreviewLink_PrelaunchActivated_False() {
+    let project = Project.template
+      |> Project.lens.prelaunchActivated .~ false
+
+    let apiService = MockService(fetchProjectResponse: project)
+    withEnvironment(apiService: apiService) {
+      let rootUrl = "https://www.kickstarter.com/"
+
+      self.vm.inputs.applicationDidFinishLaunching(
+        application: UIApplication.shared,
+        launchOptions: [:]
+      )
+
+      self.presentViewController.assertValues([])
+
+      let projectUrl = rootUrl + "projects/tequila/help-me-transform-this-pile-of-wood"
+      let result = self.vm.inputs.applicationOpenUrl(
+        application: UIApplication.shared,
+        url: URL(string: projectUrl)!,
+        options: [:]
+      )
+      XCTAssertTrue(result)
+
+      self.presentViewController.assertValues([1])
+      self.goToMobileSafari.assertValues([])
+    }
+  }
+
+  func testPresentViewController_ProjectPreviewLink_PrelaunchActivated_Nil() {
+    let project = Project.template
+      |> Project.lens.prelaunchActivated .~ nil
+
+    let apiService = MockService(fetchProjectResponse: project)
+    withEnvironment(apiService: apiService) {
+      let rootUrl = "https://www.kickstarter.com/"
+
+      self.vm.inputs.applicationDidFinishLaunching(
+        application: UIApplication.shared,
+        launchOptions: [:]
+      )
+
+      self.presentViewController.assertValues([])
+
+      let projectUrl = rootUrl + "projects/tequila/help-me-transform-this-pile-of-wood"
+      let result = self.vm.inputs.applicationOpenUrl(
+        application: UIApplication.shared,
+        url: URL(string: projectUrl)!,
+        options: [:]
+      )
+      XCTAssertTrue(result)
+
+      self.presentViewController.assertValues([1])
+      self.goToMobileSafari.assertValues([])
     }
   }
 
@@ -604,10 +671,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/activity")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToActivity.assertValueCount(1)
   }
@@ -624,10 +690,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: url)!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToDashboard.assertValueCount(1)
   }
@@ -643,10 +708,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/discover?sort=newest")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     let params = .defaults
       |> DiscoveryParams.lens.sort .~ .newest
@@ -664,10 +728,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/discover")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToDiscovery.assertValues([nil])
   }
@@ -684,10 +747,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: url,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.scheduler.advance()
 
@@ -706,10 +768,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/authorize")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToLogin.assertValueCount(1)
   }
@@ -725,10 +786,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/profile/me")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToProfile.assertValueCount(1)
   }
@@ -744,10 +804,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: "https://www.kickstarter.com/search")!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.goToSearch.assertValueCount(1)
   }
@@ -1387,10 +1446,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: emailUrl,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.findRedirectUrl.assertValues([emailUrl], "Ask to find the redirect after open the email url.")
     self.presentViewController.assertValues([], "No view controller is presented yet.")
@@ -1456,10 +1514,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: emailUrl,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.findRedirectUrl.assertValues([emailUrl], "Ask to find the redirect after open the email url.")
     self.presentViewController.assertValues([], "No view controller is presented.")
@@ -1493,10 +1550,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: emailUrl,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.findRedirectUrl.assertValues([emailUrl], "Ask to find the redirect after open the email url.")
     self.presentViewController.assertValues([], "No view controller is presented.")
@@ -1530,10 +1586,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: emailUrl,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.findRedirectUrl.assertValues([emailUrl], "Ask to find the redirect after open the email url.")
     self.presentViewController.assertValues([], "No view controller is presented yet.")
@@ -1560,10 +1615,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: projectUrl)!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.presentViewController.assertValues([1])
   }
@@ -1580,10 +1634,9 @@ final class AppDelegateViewModelTests: TestCase {
     let result = self.vm.inputs.applicationOpenUrl(
       application: UIApplication.shared,
       url: URL(string: projectUrl)!,
-      sourceApplication: nil,
-      annotation: 1
+      options: [:]
     )
-    XCTAssertFalse(result)
+    XCTAssertTrue(result)
 
     self.presentViewController.assertValues([1])
   }

@@ -1,8 +1,10 @@
 import KsApi
 import Prelude
 import ReactiveSwift
-
 public protocol ProjectPamphletViewModelInputs {
+  /// Call when "Back this project" is tapped
+  func backThisProjectTapped()
+
   /// Call with the project given to the view controller.
   func configureWith(projectOrParam: Either<Project, Param>, refTag: RefTag?)
 
@@ -12,6 +14,10 @@ public protocol ProjectPamphletViewModelInputs {
   /// Call after the view loads and passes the initial TopConstraint constant.
   func initial(topConstraint: CGFloat)
 
+  /// Call when pledgeRetryButton is tapped.
+  func pledgeRetryButtonTapped()
+
+  /// Call when the view did appear, and pass the animated parameter.
   func viewDidAppear(animated: Bool)
 
   /// Call when the view will appear, and pass the animated parameter.
@@ -25,8 +31,11 @@ public protocol ProjectPamphletViewModelOutputs {
   /// Emits a project that should be used to configure all children view controllers.
   var configureChildViewControllersWithProject: Signal<(Project, RefTag?), Never> { get }
 
-  /// Return this value from the view's `prefersStatusBarHidden` method.
-  var prefersStatusBarHidden: Bool { get }
+  /// Emits a (project, isLoading) tuple used to configure the pledge CTA view
+  var configurePledgeCTAView: Signal<(Either<Project, ErrorEnvelope>, Bool), Never> { get }
+
+  /// Emits a project and refTag to be used to navigate to the reward selection screen.
+  var goToRewards: Signal<(Project, RefTag?), Never> { get }
 
   /// Emits two booleans that determine if the navigation bar should be hidden, and if it should be animated.
   var setNavigationBarHiddenAnimated: Signal<(Bool, Bool), Never> { get }
@@ -46,23 +55,56 @@ public protocol ProjectPamphletViewModelType {
 public final class ProjectPamphletViewModel: ProjectPamphletViewModelType, ProjectPamphletViewModelInputs,
   ProjectPamphletViewModelOutputs {
   public init() {
-    let freshProjectAndRefTag = self.configDataProperty.signal.skipNil()
+    let isLoading = MutableProperty(false)
+
+    let freshProjectAndRefTagEvent = self.configDataProperty.signal.skipNil()
       .takePairWhen(Signal.merge(
         self.viewDidLoadProperty.signal.mapConst(true),
-        self.viewDidAppearAnimated.signal.filter(isTrue).mapConst(false)
+        self.viewDidAppearAnimated.signal.filter(isTrue).mapConst(false),
+        self.pledgeRetryButtonTappedProperty.signal.mapConst(false)
       ))
       .map(unpack)
       .switchMap { projectOrParam, refTag, shouldPrefix in
+
         fetchProject(projectOrParam: projectOrParam, shouldPrefix: shouldPrefix)
+          .on(
+            starting: { isLoading.value = true },
+            terminated: { isLoading.value = false }
+          )
           .map { project in
             (project, refTag.map(cleanUp(refTag:)))
           }
+          .materialize()
       }
+
+    let freshProjectAndRefTag = freshProjectAndRefTagEvent.values()
+
+    let ctaButtonTapped = freshProjectAndRefTag
+      .takeWhen(self.backThisProjectTappedProperty.signal)
+      .map { project, refTag in
+        (project, refTag)
+      }
+
+    self.goToRewards = ctaButtonTapped
+      .filter { _ in userCanSeeNativeCheckout() }
+
+    let project = freshProjectAndRefTag
+      .map(first)
+
+    let projectCTA: Signal<Either<Project, ErrorEnvelope>, Never> = project
+      .map { .left($0) }
+
+    let projectError: Signal<Either<Project, ErrorEnvelope>, Never> = freshProjectAndRefTagEvent.errors()
+      .map { .right($0) }
+
+    self.configurePledgeCTAView = Signal.combineLatest(
+      Signal.merge(projectCTA, projectError),
+      isLoading.signal
+    )
+    .filter { _ in userCanSeeNativeCheckout() }
 
     self.configureChildViewControllersWithProject = freshProjectAndRefTag
       .map { project, refTag in (project, refTag) }
-
-    self.prefersStatusBarHiddenProperty <~ self.viewWillAppearAnimated.signal.mapConst(true)
 
     self.setNeedsStatusBarAppearanceUpdate = Signal.merge(
       self.viewWillAppearAnimated.signal.ignoreValues(),
@@ -76,7 +118,7 @@ public final class ProjectPamphletViewModel: ProjectPamphletViewModelType, Proje
 
     self.topLayoutConstraintConstant = self.initialTopConstraintProperty.signal.skipNil()
       .takePairWhen(self.willTransitionToCollectionProperty.signal.skipNil())
-      .map(topLayoutConstraintConstantWithInitialTopConstraint(_:traitCollection:))
+      .map(layoutConstraintConstant(initialTopConstraint:traitCollection:))
 
     let cookieRefTag = freshProjectAndRefTag
       .map { project, refTag in
@@ -106,9 +148,19 @@ public final class ProjectPamphletViewModel: ProjectPamphletViewModelType, Proje
       .observeValues { AppEnvironment.current.cookieStorage.setCookie($0) }
   }
 
+  private let backThisProjectTappedProperty = MutableProperty(())
+  public func backThisProjectTapped() {
+    self.backThisProjectTappedProperty.value = ()
+  }
+
   private let configDataProperty = MutableProperty<(Either<Project, Param>, RefTag?)?>(nil)
   public func configureWith(projectOrParam: Either<Project, Param>, refTag: RefTag?) {
     self.configDataProperty.value = (projectOrParam, refTag)
+  }
+
+  private let pledgeRetryButtonTappedProperty = MutableProperty(())
+  public func pledgeRetryButtonTapped() {
+    self.pledgeRetryButtonTappedProperty.value = ()
   }
 
   fileprivate let viewDidLoadProperty = MutableProperty(())
@@ -138,11 +190,8 @@ public final class ProjectPamphletViewModel: ProjectPamphletViewModelType, Proje
   }
 
   public let configureChildViewControllersWithProject: Signal<(Project, RefTag?), Never>
-  fileprivate let prefersStatusBarHiddenProperty = MutableProperty(false)
-  public var prefersStatusBarHidden: Bool {
-    return self.prefersStatusBarHiddenProperty.value
-  }
-
+  public let configurePledgeCTAView: Signal<(Either<Project, ErrorEnvelope>, Bool), Never>
+  public let goToRewards: Signal<(Project, RefTag?), Never>
   public let setNavigationBarHiddenAnimated: Signal<(Bool, Bool), Never>
   public let setNeedsStatusBarAppearanceUpdate: Signal<(), Never>
   public let topLayoutConstraintConstant: Signal<CGFloat, Never>
@@ -154,13 +203,14 @@ public final class ProjectPamphletViewModel: ProjectPamphletViewModelType, Proje
 private let cookieSeparator = "?"
 private let escapedCookieSeparator = "%3F"
 
-private func topLayoutConstraintConstantWithInitialTopConstraint(
-  _ initialTopConstraint: CGFloat,
+private func layoutConstraintConstant(
+  initialTopConstraint: CGFloat,
   traitCollection: UITraitCollection
 ) -> CGFloat {
   guard !traitCollection.isRegularRegular else {
     return 0.0
   }
+
   return traitCollection.isVerticallyCompact ? 0.0 : initialTopConstraint
 }
 
@@ -222,12 +272,11 @@ private func cookieFrom(refTag: RefTag, project: Project) -> HTTPCookie? {
 }
 
 private func fetchProject(projectOrParam: Either<Project, Param>, shouldPrefix: Bool)
-  -> SignalProducer<Project, Never> {
+  -> SignalProducer<Project, ErrorEnvelope> {
   let param = projectOrParam.ifLeft({ Param.id($0.id) }, ifRight: id)
 
   let projectProducer = AppEnvironment.current.apiService.fetchProject(param: param)
     .ksr_delay(AppEnvironment.current.apiDelayInterval, on: AppEnvironment.current.scheduler)
-    .demoteErrors()
 
   if let project = projectOrParam.left, shouldPrefix {
     return projectProducer.prefix(value: project)

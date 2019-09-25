@@ -7,8 +7,9 @@ final class SelectCurrencyTableViewHeader: UIView {
   override init(frame: CGRect) {
     super.init(frame: frame)
 
-    self.addSubview(self.headerStackView)
-    self.headerStackView.constrainEdges(to: self)
+    _ = (self.headerStackView, self)
+      |> ksr_addSubviewToParent()
+      |> ksr_constrainViewToEdgesInParent()
   }
 
   required init?(coder _: NSCoder) {
@@ -29,7 +30,7 @@ final class SelectCurrencyTableViewHeader: UIView {
       |> headerLabelStyle
   }
 
-  // MARK: Accessors
+  // MARK: - Accessors
 
   public var text: String? {
     didSet {
@@ -37,7 +38,7 @@ final class SelectCurrencyTableViewHeader: UIView {
     }
   }
 
-  // MARK: Subviews
+  // MARK: - Subviews
 
   private lazy var headerStackView: UIStackView = {
     UIStackView(arrangedSubviews: [

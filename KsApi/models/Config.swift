@@ -1,6 +1,14 @@
 public enum Experiment {
   public enum Name: String {
     case creatorsNameDiscovery = "show_created_by_discovery"
+    case nativeCheckoutV1 = "native_checkout_v1"
+
+    public var debugDefault: Bool {
+      switch self {
+      case .nativeCheckoutV1: return true
+      case .creatorsNameDiscovery: return true
+      }
+    }
   }
 
   public enum Variant: String {
@@ -9,12 +17,14 @@ public enum Experiment {
   }
 }
 
+public typealias Features = [String: Bool]
+
 public struct Config {
   public var abExperiments: [String: String]
   public var appId: Int
   public var applePayCountries: [String]
   public var countryCode: String
-  public var features: [String: Bool]
+  public var features: Features
   public var iTunesLink: String
   public var launchedCountries: [Project.Country]
   public var locale: String

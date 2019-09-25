@@ -46,7 +46,6 @@ internal final class BackingViewController: UIViewController {
 
   internal override func viewDidLoad() {
     super.viewDidLoad()
-
     _ = self.messageCreatorButton
       |> UIButton.lens.targets .~ [(self, #selector(messageCreatorTapped), .touchUpInside)]
 
@@ -65,9 +64,15 @@ internal final class BackingViewController: UIViewController {
     self.navigationController?.setNavigationBarHidden(false, animated: animated)
   }
 
+  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+    super.traitCollectionDidChange(previousTraitCollection)
+
+    self.viewModel.inputs.traitCollectionDidChange(self.traitCollection)
+  }
+
   internal override func bindViewModel() {
     super.bindViewModel()
-    self.actionsStackView.rac.axis = self.viewModel.outputs.rootStackViewAxis
+    self.actionsStackView.rac.axis = self.viewModel.outputs.actionsStackViewAxis
     self.backerNameLabel.rac.text = self.viewModel.outputs.backerName
     self.backerPledgeAmountLabel.rac.text = self.viewModel.outputs.pledgeAmount
     self.backerRewardDescriptionLabel.rac.text = self.viewModel.outputs.rewardDescription
@@ -123,6 +128,9 @@ internal final class BackingViewController: UIViewController {
       |> baseControllerStyle()
       |> UIViewController.lens.title %~ { _ in Strings.project_view_button() }
 
+    _ = self.actionsStackView
+      |> \.distribution .~ .fillEqually
+
     _ = self.backerAvatarImageView
       |> ignoresInvertColorsImageViewStyle
 
@@ -144,13 +152,11 @@ internal final class BackingViewController: UIViewController {
       |> UILabel.lens.textColor .~ .ksr_text_dark_grey_400
 
     _ = self.messageCreatorButton
-      |> navyButtonStyle
-      |> UIButton.lens.titleLabel.font .~ .ksr_headline(size: 14)
-      |> UIButton.lens.contentEdgeInsets .~ .init(all: Styles.grid(2))
+      |> blackButtonStyle
       |> UIButton.lens.accessibilityHint %~ { _ in Strings.Opens_message_composer() }
 
     _ = self.viewMessagesButton
-      |> borderButtonStyle
+      |> greyButtonStyle
       |> UIButton.lens.title(for: .normal) %~ { _ in Strings.backer_modal_view_messages() }
       |> UIButton.lens.contentEdgeInsets .~ .init(all: Styles.grid(2))
       |> UIButton.lens.accessibilityHint %~ { _ in Strings.accessibility_dashboard_buttons_messages_hint() }

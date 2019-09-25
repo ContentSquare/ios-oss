@@ -34,6 +34,9 @@ public struct Service: ServiceType {
     self.language = language
     self.currency = currency
     self.buildVersion = buildVersion
+
+    // Global override required for injecting custom User-Agent header in ajax requests
+    UserDefaults.standard.register(defaults: ["UserAgent": Service.userAgent])
   }
 
   public func login(_ oauthToken: OauthTokenAuthType) -> Service {
@@ -93,6 +96,11 @@ public struct Service: ServiceType {
   public func changePaymentMethod(project: Project)
     -> SignalProducer<ChangePaymentMethodEnvelope, ErrorEnvelope> {
     return request(.changePaymentMethod(project: project))
+  }
+
+  public func clearUserUnseenActivity(input: EmptyInput)
+    -> SignalProducer<ClearUserUnseenActivityEnvelope, GraphError> {
+    return applyMutation(mutation: ClearUserUnseenActivityMutation(input: input))
   }
 
   public func deletePaymentMethod(input: PaymentSourceDeleteInput)
