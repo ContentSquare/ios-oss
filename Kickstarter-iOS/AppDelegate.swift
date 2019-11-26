@@ -16,7 +16,7 @@ import ReactiveSwift
 import SafariServices
 import UIKit
 import UserNotifications
-import ContentSquare
+import Contentsquare
 
 @UIApplicationMain
 internal final class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -35,7 +35,7 @@ internal final class AppDelegate: UIResponder, UIApplicationDelegate {
     UIViewController.doBadSwizzleStuff()
     
     #if DEBUG
-      ContentSquare.isDebug = true
+      Contentsquare.isDebug = true
     #endif
 
     UIImageView.appearance(whenContainedInInstancesOf: [UITabBar.self])
