@@ -99,8 +99,8 @@
 		37D67231221E656500B6D415 /* SettingsFooterView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 37D67230221E656500B6D415 /* SettingsFooterView.xib */; };
 		37D99C5B22247F58008EF839 /* NSBundleType+Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37D99C2222247F4A008EF839 /* NSBundleType+Tests.swift */; };
 		37FEFBC8222F1E4F00FCA608 /* ProcessInfoType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FEFBC7222F1E4F00FCA608 /* ProcessInfoType.swift */; };
-		40CC8A4422B3C0D800B45CC9 /* ContentSquare.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40CC8A4322B3C0D800B45CC9 /* ContentSquare.framework */; };
-		40CC8A4522B3C0D800B45CC9 /* ContentSquare.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 40CC8A4322B3C0D800B45CC9 /* ContentSquare.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		40CC8A4422B3C0D800B45CC9 /* Contentsquare.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40CC8A4322B3C0D800B45CC9 /* Contentsquare.framework */; };
+		40CC8A4522B3C0D800B45CC9 /* Contentsquare.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 40CC8A4322B3C0D800B45CC9 /* Contentsquare.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		59019FB61D21A47700EAEC9D /* DashboardReferrerRowStackViewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59019FB51D21A47700EAEC9D /* DashboardReferrerRowStackViewViewModel.swift */; };
 		59019FBA1D21ABD200EAEC9D /* DashboardReferrerRowStackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59019FB81D21ABD200EAEC9D /* DashboardReferrerRowStackView.swift */; };
 		59392BEC1D7094B0001C99A4 /* ProjectUpdatesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59392BEB1D7094B0001C99A4 /* ProjectUpdatesViewController.swift */; };
@@ -1131,7 +1131,7 @@
 				A73924011D272312004524C3 /* Kickstarter_Framework.framework in Embed Frameworks */,
 				D0B45B6C1EF858C00020A8DA /* KsApi.framework in Embed Frameworks */,
 				A7B693E71C8772CE00C49A4F /* Library.framework in Embed Frameworks */,
-				40CC8A4522B3C0D800B45CC9 /* ContentSquare.framework in Embed Frameworks */,
+				40CC8A4522B3C0D800B45CC9 /* Contentsquare.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1299,7 +1299,7 @@
 		37D99C2222247F4A008EF839 /* NSBundleType+Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBundleType+Tests.swift"; sourceTree = "<group>"; };
 		37FEFBC7222F1E4F00FCA608 /* ProcessInfoType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessInfoType.swift; sourceTree = "<group>"; };
 		3D1363951F0191FB00B53420 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
-		40CC8A4322B3C0D800B45CC9 /* ContentSquare.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ContentSquare.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		40CC8A4322B3C0D800B45CC9 /* Contentsquare.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Contentsquare.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		59019FB51D21A47700EAEC9D /* DashboardReferrerRowStackViewViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DashboardReferrerRowStackViewViewModel.swift; sourceTree = "<group>"; };
 		59019FB81D21ABD200EAEC9D /* DashboardReferrerRowStackView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DashboardReferrerRowStackView.swift; sourceTree = "<group>"; };
 		59392BEB1D7094B0001C99A4 /* ProjectUpdatesViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProjectUpdatesViewController.swift; sourceTree = "<group>"; };
@@ -2248,7 +2248,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D0D58D872257FAE000532AC1 /* Argo.framework in Frameworks */,
-				40CC8A4422B3C0D800B45CC9 /* ContentSquare.framework in Frameworks */,
+				40CC8A4422B3C0D800B45CC9 /* Contentsquare.framework in Frameworks */,
 				770E46252114E15D00396D46 /* Crashlytics.framework in Frameworks */,
 				D0D58D902257FAE000532AC1 /* Curry.framework in Frameworks */,
 				A7722F401D2D3B6B0049BCDC /* FBSDKCoreKit.framework in Frameworks */,
@@ -2875,7 +2875,7 @@
 		A7E06C701C5A6EB300EBDCC2 = {
 			isa = PBXGroup;
 			children = (
-				40CC8A4322B3C0D800B45CC9 /* ContentSquare.framework */,
+				40CC8A4322B3C0D800B45CC9 /* Contentsquare.framework */,
 				A7C795C71C873B800081977F /* Kickstarter-iOS.playground */,
 				802800561C88F62500141235 /* Configs */,
 				A7E06DBC1C5C027800EBDCC2 /* Frameworks */,
