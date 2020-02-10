@@ -35,7 +35,7 @@ internal final class AppDelegate: UIResponder, UIApplicationDelegate {
     UIViewController.doBadSwizzleStuff()
     
     #if DEBUG
-      Contentsquare.isDebug = true
+      Contentsquare.enableSnapshots = true
     #endif
 
     UIImageView.appearance(whenContainedInInstancesOf: [UITabBar.self])
